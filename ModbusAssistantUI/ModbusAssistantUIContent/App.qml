@@ -9,7 +9,7 @@ Window {
     height: 600
 
     visible: true
-    title: "ModbusAssistantUI"
+    title: "ModbusAssistant"
 
     Screen01 {
         id: mainScreen
