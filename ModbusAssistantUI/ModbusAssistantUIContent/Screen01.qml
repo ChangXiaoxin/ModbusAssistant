@@ -20,12 +20,6 @@ Rectangle {
     property string port: "502"
     property string iPAddr: "127.0.0.1"
 
-    signal modbusConnect(string ip, string ipport)
-
-    function testModbusConnect(ip, ipport){
-        console.log("Connect to: ", ip, ":", ipport)
-    }
-
     TextField {
         id: addrInput
         x: 245
@@ -102,8 +96,7 @@ Rectangle {
 
         Connections {
             target: connectButton
-            onClicked: modbus_client.connect(iPAddr, port);
-            // onClicked: rectangle.testModbusConnect(iPAddr, port)
+            onClicked: modbus_client.modbusConnect(iPAddr, port);
         }
     }
     states: [

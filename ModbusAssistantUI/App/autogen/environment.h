@@ -6,8 +6,8 @@
 #include <QGuiApplication>
 #include "qqmlextensionplugin.h"
 
-Q_IMPORT_QML_PLUGIN(ModbusAssistantUIPlugin)
 Q_IMPORT_QML_PLUGIN(ModbusAssistantUIContentPlugin)
+Q_IMPORT_QML_PLUGIN(ModbusAssistantUIPlugin)
 
 const char mainQmlFile[] = "qrc:/qt/qml/ModbusAssistantUIContent/App.qml";
 

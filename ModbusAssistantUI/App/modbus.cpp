@@ -1,6 +1,7 @@
 #include "modbus.h"
 #include "QVariant"
 #include <QDebug>
+#include <QModbusReply>
 
 
 Modbus::Modbus(QObject *parent)
@@ -11,7 +12,15 @@ Modbus::Modbus(QObject *parent)
     Modbus::port = "502";
 }
 
-bool Modbus::connect(QString addr, QString port)
+Modbus::~Modbus()
+{
+    if(Modbus::client->state() == QModbusDevice::ConnectedState)
+    {
+        Modbus::client->disconnectDevice();
+    }
+}
+
+bool Modbus::modbusConnect(QString addr, QString port)
 {
     Modbus::client->setConnectionParameter(QModbusDevice::NetworkAddressParameter, addr);
     Modbus::client->setConnectionParameter(QModbusDevice::NetworkPortParameter, port.toInt());
@@ -23,21 +32,65 @@ bool Modbus::connect(QString addr, QString port)
     {
         Modbus::addr = addr;
         Modbus::port = port;
-        // TODO disconnect to modbus
+        qDebug() << "Config changed, re-connecting...";
+        Modbus::client->disconnectDevice();
+        return true;
     }
-    qDebug() << "Ip got" << addr << ":" << port;
-    bool success = Modbus::client->state() == QModbusDevice::ConnectedState;
-    if (!success || parameter_changed)
+    qDebug() << "Config: " << addr << ":" << port;
+    bool connected = Modbus::client->state() == QModbusDevice::ConnectedState;
+    if (!connected || parameter_changed)
     {
         Modbus::client->connectDevice();
         qDebug() << "Connecting...";
+        return true;
     }
-    qDebug() << "State: " << Modbus::client->state();
-    QModbusDataUnit readUnit(QModbusDataUnit::HoldingRegisters, 0, 10);
-    auto *reply = Modbus::client->sendReadRequest(readUnit, 1);
-    if(reply)
+    else
     {
-        qDebug() << reply->result().value(0);
+        qDebug() << "Already connected!";
     }
-    return success;
+    onRead();
+    return true;
+}
+
+void Modbus::onRead()
+{
+    readValue();
+}
+
+void Modbus::readValue()
+{
+    if(Modbus::client->state() == QModbusDevice::ConnectedState)
+    {
+        qDebug() << "Reading data from id 0...";
+        QModbusDataUnit readUnit(QModbusDataUnit::HoldingRegisters, 0, 1);
+        if(auto *reply = Modbus::client->sendReadRequest(readUnit, 1))
+        {
+            if (!reply->isFinished())
+            {
+                qDebug() << "Waiting for reply from TCP...";
+                connect(reply, &QModbusReply::finished, this, &Modbus::receiveData);
+                return;
+            }
+            else
+            {
+                QModbusDataUnit unit = reply->result();
+                reply->deleteLater();
+                if (unit.valueCount()>0)
+                {
+                    qDebug() << "Receive data: " << unit.value(0);
+                }
+            }
+        }
+    }
+}
+
+void Modbus::receiveData()
+{
+    QModbusReply* reply = (QModbusReply*)(sender());
+    QModbusDataUnit unit = reply->result();
+    reply->deleteLater();
+    if (unit.valueCount()>0)
+    {
+        qDebug() << "Receive data: " << unit.value(0);
+    }
 }
